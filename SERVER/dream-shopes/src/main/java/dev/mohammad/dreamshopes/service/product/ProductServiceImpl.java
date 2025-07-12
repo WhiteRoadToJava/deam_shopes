@@ -1,25 +1,35 @@
 package dev.mohammad.dreamshopes.service.product;
 
+import dev.mohammad.dreamshopes.dto.ImageDto;
+import dev.mohammad.dreamshopes.dto.ProductDto;
+import dev.mohammad.dreamshopes.exception.CategoryNotFoundException;
 import dev.mohammad.dreamshopes.exception.ProductNotFoundException;
 import dev.mohammad.dreamshopes.model.Category;
+import dev.mohammad.dreamshopes.model.Image;
 import dev.mohammad.dreamshopes.model.Product;
 
 import dev.mohammad.dreamshopes.repository.CategoryRepository;
+import dev.mohammad.dreamshopes.repository.ImageRepository;
 import dev.mohammad.dreamshopes.repository.ProductRepository;
 import dev.mohammad.dreamshopes.request.AddProductRequest;
 import dev.mohammad.dreamshopes.request.ProductUpdateRequest;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
-    private final ProductRepository priductRepository;
+    private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ModelMapper modelMapper;
+    private final ImageRepository imageRepository;
+
 
     @Override
     public Product addProduct(AddProductRequest request) {
@@ -39,7 +49,7 @@ public class ProductServiceImpl implements ProductService {
                             return categoryRepository.save(newCategory);
                         });
         request.setCategory(category);
-        return priductRepository.save(createProduct(request, category));
+        return productRepository.save(createProduct(request, category));
 
     }
 
@@ -56,33 +66,52 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product getProductById(long id) {
-        return priductRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product not found"));
+        return productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product not found"));
     }
 
     @Override
-    public Product updateProduct(ProductUpdateRequest request, long priductId) {
-        return priductRepository.findById(priductId)
+    public Product updateProduct(ProductUpdateRequest request, long productId) {
+        return productRepository.findById(productId)
                 .map(exsistingproduct -> updateExistingProduct(exsistingproduct, request))
-                .map(priductRepository::save)
+                .map(productRepository::save)
                 .orElseThrow(() -> new ProductNotFoundException("Product not found"));
 
 
     }
 
     private Product updateExistingProduct(Product existingProduct, ProductUpdateRequest request) {
-        existingProduct.setName(request.getName());
-        existingProduct.setBrand(request.getBrand());
+        // Apply null checks if fields in request are optional for update
+        if (request.getName() != null) {
+            existingProduct.setName(request.getName());
+        }
+        if (request.getBrand() != null) {
+            existingProduct.setBrand(request.getBrand());
+        }
+        // Assuming price, description, inventory are always present or intended to be updated even with nulls if request allows
         existingProduct.setPrice(request.getPrice());
         existingProduct.setDescription(request.getDescription());
         existingProduct.setInventory(request.getInventory());
-        Category category = categoryRepository.findByName(request.getCategory().getName());
-        existingProduct.setCategory(category);
+
+        // CRITICAL FIX: Add null checks for request.getCategory()
+        if (request.getCategory() != null && request.getCategory().getName() != null) {
+            String categoryName = request.getCategory().getName();
+            Category category = categoryRepository.findByName(categoryName);
+
+            if (category == null) {
+                // IMPROVEMENT: Use a more semantically correct exception
+                throw new CategoryNotFoundException("Category not found with name: " + categoryName);
+            }
+            existingProduct.setCategory(category);
+        }
+        // else if request.getCategory() is null, the existing category remains unchanged.
+        // If you want to explicitly allow setting the category to null, you'd add logic here.
+
         return existingProduct;
     }
 
     @Override
     public void deleteProduct(long id) {
-        priductRepository.findById(id).ifPresentOrElse(priductRepository::delete,
+        productRepository.findById(id).ifPresentOrElse(productRepository::delete,
                 () -> {
                     throw new ProductNotFoundException("Product not found");
                 });
@@ -90,27 +119,27 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<Product> getAllProducts() {
-        return priductRepository.findAll();
+        return productRepository.findAll();
     }
 
     @Override
     public List<Product> getAllProductsByCategory(String category) {
-        return priductRepository.findByCategoryName(category);
+        return productRepository.findByCategoryName(category);
     }
 
     @Override
     public List<Product> getAllProductsByBrand(String brand) {
-        return priductRepository.findByBrand(brand);
+        return productRepository.findByBrand(brand);
     }
 
     @Override
     public List<Product> getAllProductsByCategoryAndBrand(String category, String brand) {
-        return priductRepository.findByCategoryNameAndBrand(category, brand);
+        return productRepository.findByCategoryNameAndBrand(category, brand);
     }
 
     @Override
     public List<Product> getAllProductByName(String name) {
-        return priductRepository.findByName(name);
+        return productRepository.findByName(name);
     }
 
     @Override
@@ -120,11 +149,30 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<Product> getAllProductByBrandAndName(String brand, String name) {
-        return priductRepository.findByBrandAndName(brand, name);
+        return productRepository.findByBrandAndName(brand, name);
     }
 
     @Override
     public Long countAllProductsByBrandAndName(String brand, String name) {
-        return priductRepository.countByBrandAndName(brand, name);
+        return productRepository.countByBrandAndName(brand, name);
     }
+
+
+    @Override
+    public List<ProductDto> getConvertedProducts(List<Product> products) {
+        return products.stream().map(this::converToDto).toList();
+    }
+
+
+@Override
+public ProductDto converToDto(Product product) {
+        ProductDto productDto = modelMapper.map(product, ProductDto.class);
+        List<Image> images = imageRepository.findByProductId(product.getId());
+        List<ImageDto> imagesDto = images.stream().map(image -> modelMapper.map(image, ImageDto.class))
+                .collect(Collectors
+                        .toList());
+
+        return productDto;
+    }
+
 }

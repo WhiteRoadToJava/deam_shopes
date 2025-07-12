@@ -32,9 +32,9 @@ public class ImageController {
     private final ImageService  imageService;
 
     @PostMapping("/upload")
-    public ResponseEntity<ApiResponse> saveImages(@RequestParam List<MultipartFile> images,@RequestParam Long productId) {
+    public ResponseEntity<ApiResponse> saveImages(@RequestParam List<MultipartFile> files,@RequestParam Long productId) {
         try {
-            List<ImageDto> imageDtos= imageService.saveImage(images,productId);
+            List<ImageDto> imageDtos= imageService.saveImage(files,productId);
             return ResponseEntity.ok(new ApiResponse("Upload success!", imageDtos));
         }catch (Exception e){
             return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("upload failed", e.getMessage()));
@@ -42,10 +42,10 @@ public class ImageController {
     }
 
 
-    @GetMapping("image/download/{imageId}")
-    public ResponseEntity<Resource> doownloadImage(@RequestParam Long productId, @RequestParam Long imageId) throws SQLException {
+    @GetMapping("/image/download/{imageId}")
+    public ResponseEntity<Resource> doownloadImage( @PathVariable Long imageId) throws SQLException {
         Image image = imageService.getImageById(imageId);
-        ByteArrayResource resource = new ByteArrayResource(image.getImage().getBytes(1, (int)image.getImage().length()));
+         ByteArrayResource resource = new ByteArrayResource(image.getImage().getBytes(1, (int)image.getImage().length()));
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(image.getFileType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filememe=\"" + image.getFilename() + "\"")
                 .body(resource);

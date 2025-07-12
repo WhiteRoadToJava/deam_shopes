@@ -1,5 +1,6 @@
 package dev.mohammad.dreamshopes.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,7 @@ public class Product {
 
 @ManyToOne(cascade = CascadeType.ALL)
 @JoinColumn(name = "category_id")
+// @JsonIgnore  this used to stop the loop
 private Category category;
 
 @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -1,6 +1,7 @@
 package dev.mohammad.dreamshopes.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,6 +21,8 @@ public class Category {
     private Long id;
     private String name;
 
+
+    @JsonIgnore //this used i stop the loop overflow
     @OneToMany(mappedBy = "category")
     private List<Product> products;
 
