@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -20,9 +21,11 @@ public class Cart {
     private BigDecimal tatalAmount = BigDecimal.ZERO;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<CartItem> items;
+    private Set<CartItem> items = new HashSet<>();
 
-
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
 
     public void addItem(CartItem item) {

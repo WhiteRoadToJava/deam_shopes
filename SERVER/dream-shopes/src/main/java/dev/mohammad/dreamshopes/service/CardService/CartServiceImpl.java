@@ -7,6 +7,7 @@ import dev.mohammad.dreamshopes.model.Cart;
 import dev.mohammad.dreamshopes.model.CartItem;
 import dev.mohammad.dreamshopes.repository.CartItemRepository;
 import dev.mohammad.dreamshopes.repository.CartRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +35,7 @@ public class CartServiceImpl implements CartService {
     }
 
 
+    @Transactional
     @Override
     public void clearCart(Long id) {
         Cart cart = getCart(id);
@@ -60,5 +62,10 @@ public class CartServiceImpl implements CartService {
         newCart.setId(newCartId);
         return cartRepository.save(newCart).getId();
 
+    }
+
+    @Override
+    public Cart getCartByUserId(Long userId) {
+        return null;
     }
 }
